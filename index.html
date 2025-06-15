@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Hedge Fund Strategy Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light: #ecf0f1;
+            --dark: #34495e;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light);
+            color: var(--primary);
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        button {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+        }
+        
+        .btn-success:hover {
+            background-color: #219653;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning);
+        }
+        
+        .btn-warning:hover {
+            background-color: #d35400;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid var(--secondary);
+        }
+        
+        .summary-card h3 {
+            font-size: 1rem;
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+        
+        .summary-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        
+        .profit {
+            color: var(--success);
+        }
+        
+        .loss {
+            color: var(--danger);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background-color: var(--light);
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .buy-action {
+            background-color: rgba(39, 174, 96, 0.1);
+        }
+        
+        .sell-action {
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+        
+        .action-needed {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { background-color: rgba(243, 156, 18, 0.1); }
+            50% { background-color: rgba(243, 156, 18, 0.3); }
+            100% { background-color: rgba(243, 156, 18, 0.1); }
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        
+        .tab.active {
+            background-color: var(--secondary);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-buy {
+            background-color: rgba(39, 174, 96, 0.2);
+            color: var(--success);
+        }
+        
+        .status-sell {
+            background-color: rgba(231, 76, 60, 0.2);
+            color: var(--danger);
+        }
+        
+        .status-hold {
+            background-color: rgba(52, 152, 219, 0.2);
+            color: var(--secondary);
+        }
+        
+        .instructions {
+            background-color: #fff8e1;
+            border-left: 4px solid var(--warning);
+            padding: 15px;
+            border-radius: 0 5px 5px 0;
+            margin-bottom: 20px;
+        }
+        
+        .instructions h3 {
+            color: var(--warning);
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 5px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transform: translateX(120%);
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background-color: var(--success);
+        }
+        
+        .notification.error {
+            background-color: var(--danger);
+        }
+        
+        .load-indicator {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background-color: #f0f0f0;
+            z-index: 9999;
+        }
+        
+        .load-indicator::before {
+            content: '';
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: var(--secondary);
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            header {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="load-indicator" id="loadIndicator"></div>
+    <div class="notification" id="notification"></div>
+    
+    <div class="container">
+        <header>
+            <h1>Crypto Hedge Fund Strategy Tracker</h1>
+            <p class="subtitle">Automated implementation of the Gotbit Hedge Fund strategy</p>
+        </header>
+
+        <div class="instructions">
+            <h3>Strategy Rules</h3>
+            <ul>
+                <li><strong>Buy 1</strong> can only be executed once per token</li>
+                <li>Subsequent buys are only possible when price reaches the level</li>
+                <li>TP1 = +100% from average buy price (sell 50% of holdings)</li>
+                <li>TP2 = +300% from average buy price (sell 25% of holdings)</li>
+                <li>Capital is equally distributed among all tokens</li>
+                <li>Each buy level uses 25% of token allocation</li>
+            </ul>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2 class="card-title">API Configuration</h2>
+                <div class="form-group">
+                    <label for="apiKey">CoinMarketCap API Key</label>
+                    <input type="text" id="apiKey" placeholder="Enter your API key">
+                    <small>Get your free API key from <a href="https://coinmarketcap.com/api/" target="_blank">CoinMarketCap</a></small>
+                </div>
+                <div class="form-group">
+                    <label for="totalCapital">Total Capital ($)</label>
+                    <input type="number" id="totalCapital" placeholder="10000" min="100" step="100" value="10000">
+                </div>
+                <button id="saveConfig" class="btn-success">Save Configuration</button>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Add Token</h2>
+                <div class="form-group">
+                    <label for="tokenSymbol">Token Symbol (e.g. BTC)</label>
+                    <input type="text" id="tokenSymbol" placeholder="BTC">
+                </div>
+                <div class="form-group">
+                    <label for="buy1Price">Buy 1 Price ($)</label>
+                    <input type="number" id="buy1Price" placeholder="e.g. 50000" step="0.0001">
+                </div>
+                <button id="addToken" class="btn-success">Add Token to Strategy</button>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Portfolio Summary</h2>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <h3>Total Value</h3>
+                        <div class="value" id="totalValue">$10,000.00</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Invested</h3>
+                        <div class="value" id="investedValue">$0.00</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Available Cash</h3>
+                        <div class="value" id="cashValue">$10,000.00</div>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Profit/Loss</h3>
+                        <div class="value" id="profitValue">$0.00</div>
+                    </div>
+                </div>
+                <button id="updatePortfolio">Update Prices & Portfolio</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="tokens">Token Strategy</div>
+            <div class="tab" data-tab="actions">Today's Actions</div>
+            <div class="tab" data-tab="history">Portfolio History</div>
+        </div>
+
+        <div class="tab-content active" id="tokens-tab">
+            <div class="card">
+                <h2 class="card-title">Token Strategy Table</h2>
+                <div class="table-responsive">
+                    <table id="tokenTable">
+                        <thead>
+                            <tr>
+                                <th>Token</th>
+                                <th>Current Price</th>
+                                <th>Buy 1</th>
+                                <th>Buy 2</th>
+                                <th>Buy 3</th>
+                                <th>Buy 4</th>
+                                <th>Avg Price</th>
+                                <th>TP1 (2x)</th>
+                                <th>TP2 (4x)</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tokenTableBody">
+                            <!-- Token rows will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="actions-tab">
+            <div class="card">
+                <h2 class="card-title">Today's Recommended Actions</h2>
+                <div class="table-responsive">
+                    <table id="actionTable">
+                        <thead>
+                            <tr>
+                                <th>Token</th>
+                                <th>Action</th>
+                                <th>Price Level</th>
+                                <th>Current Price</th>
+                                <th>Amount</th>
+                                <th>Value</th>
+                                <th>Execute</th>
+                            </tr>
+                        </thead>
+                        <tbody id="actionTableBody">
+                            <!-- Action rows will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="history-tab">
+            <div class="card">
+                <h2 class="card-title">Portfolio Performance</h2>
+                <div class="chart-container">
+                    <canvas id="portfolioChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h2 class="card-title">Transaction History</h2>
+                <div class="table-responsive">
+                    <table id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Token</th>
+                                <th>Action</th>
+                                <th>Price</th>
+                                <th>Amount</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- History rows will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let portfolio = {
+            capital: 10000,
+            cash: 10000,
+            tokens: [],
+            history: [],
+            dailySnapshots: [],
+            apiKey: '',
+            lastUpdated: null
+        };
+        
+        // DOM Elements
+        const elements = {
+            apiKey: document.getElementById('apiKey'),
+            totalCapital: document.getElementById('totalCapital'),
+            tokenSymbol: document.getElementById('tokenSymbol'),
+            buy1Price: document.getElementById('buy1Price'),
+            tokenTableBody: document.getElementById('tokenTableBody'),
+            actionTableBody: document.getElementById('actionTableBody'),
+            historyTableBody: document.getElementById('historyTableBody'),
+            totalValue: document.getElementById('totalValue'),
+            investedValue: document.getElementById('investedValue'),
+            cashValue: document.getElementById('cashValue'),
+            profitValue: document.getElementById('profitValue'),
+            portfolioChart: document.getElementById('portfolioChart'),
+            notification: document.getElementById('notification'),
+            loadIndicator: document.getElementById('loadIndicator')
+        };
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            renderPortfolioSummary();
+            renderTokenTable();
+            setupEventListeners();
+            setupTabs();
+        });
+        
+        // Event Listeners
+        function setupEventListeners() {
+            document.getElementById('saveConfig').addEventListener('click', saveConfig);
+            document.getElementById('addToken').addEventListener('click', addToken);
+            document.getElementById('updatePortfolio').addEventListener('click', updatePortfolio);
+        }
+        
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs and content
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+                    
+                    // Show corresponding content
+                    const tabId = tab.getAttribute('data-tab');
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+        }
+        
+        // Configuration
+        function saveConfig() {
+            portfolio.apiKey = elements.apiKey.value;
+            portfolio.capital = parseFloat(elements.totalCapital.value);
+            portfolio.cash = portfolio.capital;
+            
+            // Recalculate allocations
+            portfolio.tokens.forEach(token => {
+                token.allocation = portfolio.capital / portfolio.tokens.length;
+            });
+            
+            saveToLocalStorage();
+            renderPortfolioSummary();
+            showNotification('Configuration saved successfully!', 'success');
+        }
+        
+        // Token Management
+        function addToken() {
+            const symbol = elements.tokenSymbol.value.trim().toUpperCase();
+            const buy1 = parseFloat(elements.buy1Price.value);
+            
+            if (!symbol || !buy1) {
+                showNotification('Please enter both token symbol and Buy 1 price', 'error');
+                return;
+            }
+            
+            // Check if token already exists
+            if (portfolio.tokens.some(token => token.symbol === symbol)) {
+                showNotification('Token already exists in portfolio', 'error');
+                return;
+            }
+            
+            const token = {
+                symbol,
+                buy1,
+                buy2: buy1 * 0.75,
+                buy3: buy1 * 0.5625,
+                buy4: buy1 * 0.421875,
+                allocation: portfolio.capital / (portfolio.tokens.length + 1),
+                bought: [false, false, false, false],
+                coins: 0,
+                invested: 0,
+                avgPrice: 0,
+                tp1Sold: false,
+                tp2Sold: false,
+                currentPrice: 0,
+                lastUpdated: null
+            };
+            
+            // Update existing tokens' allocation
+            portfolio.tokens.forEach(t => {
+                t.allocation = portfolio.capital / (portfolio.tokens.length + 1);
+            });
+            
+            portfolio.tokens.push(token);
+            
+            // Clear form
+            elements.tokenSymbol.value = '';
+            elements.buy1Price.value = '';
+            
+            saveToLocalStorage();
+            renderTokenTable();
+            renderPortfolioSummary();
+            showNotification(`Token ${symbol} added to strategy`, 'success');
+        }
+        
+        // Portfolio Operations
+        async function updatePortfolio() {
+            if (!portfolio.apiKey) {
+                showNotification('Please enter your CoinMarketCap API key first', 'error');
+                return;
+            }
+            
+            try {
+                showLoader(true);
+                // Update token prices
+                await updateTokenPrices();
+                
+                // Check for strategy actions
+                checkStrategyActions();
+                
+                // Update daily snapshot
+                updateDailySnapshot();
+                
+                // Render updated views
+                renderTokenTable();
+                renderActionTable();
+                renderPortfolioSummary();
+                renderHistoryTable();
+                renderPortfolioChart();
+                
+                saveToLocalStorage();
+                
+                showNotification('Portfolio updated successfully!', 'success');
+            } catch (error) {
+                console.error('Error updating portfolio:', error);
+                showNotification(`Error updating portfolio: ${error.message}`, 'error');
+            } finally {
+                showLoader(false);
+            }
+        }
+        
+        async function updateTokenPrices() {
+            if (portfolio.tokens.length === 0) return;
+            
+            const symbols = portfolio.tokens.map(token => token.symbol).join(',');
+            const apiUrl = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${symbols}&CMC_PRO_API_KEY=${encodeURIComponent(portfolio.apiKey)}`;
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API error: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Update token prices
+                portfolio.tokens.forEach(token => {
+                    if (data.data && data.data[token.symbol]) {
+                        token.currentPrice = data.data[token.symbol].quote.USD.price;
+                        token.lastUpdated = new Date().toISOString();
+                    } else {
+                        console.warn(`No data for token: ${token.symbol}`);
+                    }
+                });
+                
+                portfolio.lastUpdated = new Date().toISOString();
+            } catch (error) {
+                console.error('Failed to update prices:', error);
+                throw error;
+            }
+        }
+        
+        function checkStrategyActions() {
+            // Clear previous actions
+            portfolio.tokens.forEach(token => token.action = null);
+            
+            // Check for buy actions
+            portfolio.tokens.forEach(token => {
+                if (token.currentPrice) {
+                    // Check buy levels
+                    if (!token.bought[0] && token.currentPrice <= token.buy1) {
+                        token.action = {
+                            type: 'buy',
+                            level: 'Buy1',
+                            price: token.buy1,
+                            amount: (token.allocation / 4) / token.buy1,
+                            value: token.allocation / 4
+                        };
+                    } else if (!token.bought[1] && token.currentPrice <= token.buy2) {
+                        token.action = {
+                            type: 'buy',
+                            level: 'Buy2',
+                            price: token.buy2,
+                            amount: (token.allocation / 4) / token.buy2,
+                            value: token.allocation / 4
+                        };
+                    } else if (!token.bought[2] && token.currentPrice <= token.buy3) {
+                        token.action = {
+                            type: 'buy',
+                            level: 'Buy3',
+                            price: token.buy3,
+                            amount: (token.allocation / 4) / token.buy3,
+                            value: token.allocation / 4
+                        };
+                    } else if (!token.bought[3] && token.currentPrice <= token.buy4) {
+                        token.action = {
+                            type: 'buy',
+                            level: 'Buy4',
+                            price: token.buy4,
+                            amount: (token.allocation / 4) / token.buy4,
+                            value: token.allocation / 4
+                        };
+                    }
+                    
+                    // Check sell levels if we have coins
+                    if (token.coins > 0) {
+                        const tp1 = token.avgPrice * 2;
+                        const tp2 = token.avgPrice * 4;
+                        
+                        if (!token.tp1Sold && token.currentPrice >= tp1) {
+                            token.action = {
+                                type: 'sell',
+                                level: 'TP1',
+                                price: tp1,
+                                amount: token.coins * 0.5,
+                                value: token.coins * 0.5 * token.currentPrice
+                            };
+                        } else if (token.tp1Sold && !token.tp2Sold && token.currentPrice >= tp2) {
+                            token.action = {
+                                type: 'sell',
+                                level: 'TP2',
+                                price: tp2,
+                                amount: token.coins * 0.25,
+                                value: token.coins * 0.25 * token.currentPrice
+                            };
+                        }
+                    }
+                }
+            });
+        }
+        
+        function executeAction(tokenSymbol, actionType) {
+            const token = portfolio.tokens.find(t => t.symbol === tokenSymbol);
+            
+            if (!token || !token.action || token.action.type !== actionType) {
+                showNotification('Action not available or already executed', 'error');
+                return;
+            }
+            
+            const action = token.action;
+            
+            // Record transaction
+            const transaction = {
+                date: new Date().toISOString(),
+                token: token.symbol,
+                type: action.type,
+                price: action.price,
+                amount: action.amount,
+                value: action.value
+            };
+            
+            portfolio.history.push(transaction);
+            
+            // Execute action
+            if (action.type === 'buy') {
+                // Determine buy level
+                let levelIndex = 0;
+                if (action.level === 'Buy2') levelIndex = 1;
+                else if (action.level === 'Buy3') levelIndex = 2;
+                else if (action.level === 'Buy4') levelIndex = 3;
+                
+                // Update token state
+                token.bought[levelIndex] = true;
+                token.coins += action.amount;
+                token.invested += action.value;
+                token.avgPrice = token.invested / token.coins;
+                
+                // Update portfolio cash
+                portfolio.cash -= action.value;
+            } else if (action.type === 'sell') {
+                // Update token state
+                token.coins -= action.amount;
+                
+                if (action.level === 'TP1') {
+                    token.tp1Sold = true;
+                } else if (action.level === 'TP2') {
+                    token.tp2Sold = true;
+                }
+                
+                // Update portfolio cash
+                portfolio.cash += action.value;
+            }
+            
+            // Clear action
+            token.action = null;
+            
+            saveToLocalStorage();
+            renderTokenTable();
+            renderActionTable();
+            renderPortfolioSummary();
+            renderHistoryTable();
+            
+            showNotification(`Action executed: ${token.symbol} ${action.level}`, 'success');
+        }
+        
+        // Rendering Functions
+        function renderTokenTable() {
+            elements.tokenTableBody.innerHTML = '';
+            
+            portfolio.tokens.forEach(token => {
+                const row = document.createElement('tr');
+                
+                // Highlight row if action is needed
+                if (token.action) {
+                    row.classList.add('action-needed');
+                }
+                
+                // Determine status
+                let status = 'Hold';
+                let statusClass = 'status-hold';
+                
+                if (token.action) {
+                    status = token.action.type === 'buy' ? 'Buy Opportunity' : 'Sell Opportunity';
+                    statusClass = token.action.type === 'buy' ? 'status-buy' : 'status-sell';
+                }
+                
+                row.innerHTML = `
+                    <td><strong>${token.symbol}</strong></td>
+                    <td>${token.currentPrice ? token.currentPrice.toFixed(4) : 'N/A'}</td>
+                    <td>${formatBuyCell(token, 0, token.buy1)}</td>
+                    <td>${formatBuyCell(token, 1, token.buy2)}</td>
+                    <td>${formatBuyCell(token, 2, token.buy3)}</td>
+                    <td>${formatBuyCell(token, 3, token.buy4)}</td>
+                    <td>${token.avgPrice > 0 ? token.avgPrice.toFixed(4) : 'N/A'}</td>
+                    <td>${token.avgPrice > 0 ? (token.avgPrice * 2).toFixed(4) : 'N/A'}</td>
+                    <td>${token.avgPrice > 0 ? (token.avgPrice * 4).toFixed(4) : 'N/A'}</td>
+                    <td><span class="status-badge ${statusClass}">${status}</span></td>
+                    <td>
+                        ${token.action ? `
+                            <button class="btn-${token.action.type === 'buy' ? 'success' : 'danger'}" 
+                                onclick="executeAction('${token.symbol}', '${token.action.type}')">
+                                Execute ${token.action.type}
+                            </button>
+                        ` : ''}
+                    </td>
+                `;
+                
+                elements.tokenTableBody.appendChild(row);
+            });
+        }
+        
+        function formatBuyCell(token, levelIndex, price) {
+            let className = '';
+            let status = '';
+            
+            if (token.bought[levelIndex]) {
+                className = 'buy-action';
+                status = '✓';
+            } else if (token.currentPrice && token.currentPrice <= price) {
+                className = 'action-needed';
+                status = 'BUY';
+            }
+            
+            return `<span class="${className}">${price.toFixed(4)} ${status}</span>`;
+        }
+        
+        function renderActionTable() {
+            elements.actionTableBody.innerHTML = '';
+            
+            let hasActions = false;
+            
+            portfolio.tokens.forEach(token => {
+                if (token.action) {
+                    hasActions = true;
+                    const row = document.createElement('tr');
+                    row.classList.add(token.action.type === 'buy' ? 'buy-action' : 'sell-action');
+                    
+                    row.innerHTML = `
+                        <td><strong>${token.symbol}</strong></td>
+                        <td>${token.action.type.toUpperCase()} ${token.action.level}</td>
+                        <td>${token.action.price.toFixed(4)}</td>
+                        <td>${token.currentPrice.toFixed(4)}</td>
+                        <td>${token.action.amount.toFixed(4)}</td>
+                        <td>$${token.action.value.toFixed(2)}</td>
+                        <td>
+                            <button class="btn-${token.action.type === 'buy' ? 'success' : 'danger'}" 
+                                onclick="executeAction('${token.symbol}', '${token.action.type}')">
+                                Execute
+                            </button>
+                        </td>
+                    `;
+                    
+                    elements.actionTableBody.appendChild(row);
+                }
+            });
+            
+            if (!hasActions) {
+                elements.actionTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 20px;">
+                            No recommended actions for today. All positions are within strategy parameters.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        function renderHistoryTable() {
+            elements.historyTableBody.innerHTML = '';
+            
+            // Sort history by date descending
+            const sortedHistory = [...portfolio.history].sort((a, b) => 
+                new Date(b.date) - new Date(a.date));
+            
+            if (sortedHistory.length === 0) {
+                elements.historyTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px;">
+                            No transaction history yet.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            sortedHistory.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.classList.add(transaction.type === 'buy' ? 'buy-action' : 'sell-action');
+                
+                const date = new Date(transaction.date);
+                const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+                
+                row.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td><strong>${transaction.token}</strong></td>
+                    <td>${transaction.type.toUpperCase()}</td>
+                    <td>${transaction.price.toFixed(4)}</td>
+                    <td>${transaction.amount.toFixed(4)}</td>
+                    <td>$${transaction.value.toFixed(2)}</td>
+                `;
+                
+                elements.historyTableBody.appendChild(row);
+            });
+        }
+        
+        function renderPortfolioSummary() {
+            let totalInvested = 0;
+            let currentValue = 0;
+            
+            portfolio.tokens.forEach(token => {
+                totalInvested += token.invested;
+                
+                if (token.currentPrice) {
+                    currentValue += token.coins * token.currentPrice;
+                }
+            });
+            
+            const totalValue = portfolio.cash + currentValue;
+            const profit = totalValue - portfolio.capital;
+            
+            elements.totalValue.textContent = `$${totalValue.toFixed(2)}`;
+            elements.investedValue.textContent = `$${totalInvested.toFixed(2)}`;
+            elements.cashValue.textContent = `$${portfolio.cash.toFixed(2)}`;
+            
+            elements.profitValue.textContent = `$${profit.toFixed(2)}`;
+            elements.profitValue.className = 'value ' + (profit >= 0 ? 'profit' : 'loss');
+        }
+        
+        function renderPortfolioChart() {
+            if (portfolio.dailySnapshots.length < 2) return;
+            
+            // Sort snapshots by date
+            const sortedSnapshots = [...portfolio.dailySnapshots].sort((a, b) => 
+                new Date(a.date) - new Date(b.date));
+            
+            const dates = sortedSnapshots.map(s => {
+                const d = new Date(s.date);
+                return `${d.getDate()}/${d.getMonth() + 1}`;
+            });
+            
+            const values = sortedSnapshots.map(s => s.totalValue);
+            
+            const ctx = elements.portfolioChart.getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (window.portfolioChart) {
+                window.portfolioChart.destroy();
+            }
+            
+            window.portfolioChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Portfolio Value',
+                        data: values,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#3498db',
+                        pointRadius: 3,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `$${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Portfolio History
+        function updateDailySnapshot() {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            
+            // Check if we already have a snapshot for today
+            if (portfolio.dailySnapshots.some(s => s.date === today)) {
+                return;
+            }
+            
+            // Calculate current value
+            let currentValue = 0;
+            portfolio.tokens.forEach(token => {
+                if (token.currentPrice) {
+                    currentValue += token.coins * token.currentPrice;
+                }
+            });
+            
+            const totalValue = portfolio.cash + currentValue;
+            
+            portfolio.dailySnapshots.push({
+                date: today,
+                cash: portfolio.cash,
+                invested: portfolio.tokens.reduce((sum, token) => sum + token.invested, 0),
+                currentValue,
+                totalValue
+            });
+            
+            // Keep only 30 days of history
+            if (portfolio.dailySnapshots.length > 30) {
+                portfolio.dailySnapshots.shift();
+            }
+        }
+        
+        // UI Helpers
+        function showNotification(message, type) {
+            elements.notification.textContent = message;
+            elements.notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                elements.notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        function showLoader(show) {
+            elements.loadIndicator.style.display = show ? 'block' : 'none';
+        }
+        
+        // Local Storage
+        function saveToLocalStorage() {
+            localStorage.setItem('cryptoPortfolio', JSON.stringify(portfolio));
+        }
+        
+        function loadFromLocalStorage() {
+            const savedData = localStorage.getItem('cryptoPortfolio');
+            if (savedData) {
+                portfolio = JSON.parse(savedData);
+                
+                // Initialize elements
+                elements.apiKey.value = portfolio.apiKey || '';
+                elements.totalCapital.value = portfolio.capital || 10000;
+            }
+        }
+        
+        // Expose function for button click
+        window.executeAction = executeAction;
+    </script>
+</body>
+</html>
