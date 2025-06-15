@@ -597,6 +597,14 @@
             width: 24px;
             height: 24px;
         }
+        
+        /* Добавим стиль для поля массового ввода */
+        #bulkTokens {
+            font-family: monospace;
+            font-size: 0.9rem;
+            min-height: 150px;
+            white-space: pre;
+        }
     </style>
 </head>
 <body>
@@ -670,6 +678,19 @@
                 <button id="addToken" class="btn-success">
                     <span class="icon">🪙</span>
                     Add Token to Strategy
+                </button>
+                
+                <div class="section-divider" style="margin: 20px 0;">
+                    <h3>Bulk Import</h3>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bulkTokens">Add multiple tokens (format: symbol price)</label>
+                    <textarea id="bulkTokens" placeholder="BTC 50000&#10;ETH 3500&#10;SOL 120"></textarea>
+                </div>
+                <button id="addBulkTokens" class="btn-success">
+                    <span class="icon">📥</span>
+                    Import Multiple Tokens
                 </button>
             </div>
 
@@ -981,7 +1002,9 @@
             importData: document.getElementById('importData'),
             backupData: document.getElementById('backupData'),
             copyData: document.getElementById('copyData'),
-            restoreData: document.getElementById('restoreData')
+            restoreData: document.getElementById('restoreData'),
+            bulkTokens: document.getElementById('bulkTokens'),
+            addBulkTokens: document.getElementById('addBulkTokens')
         };
         
         // Initialize
@@ -1003,6 +1026,7 @@
             document.getElementById('addToken').addEventListener('click', addToken);
             document.getElementById('updatePortfolio').addEventListener('click', updatePortfolio);
             elements.themeToggle.addEventListener('click', toggleTheme);
+            elements.addBulkTokens.addEventListener('click', addBulkTokens);
             
             // Backup events
             elements.exportData.addEventListener('click', exportPortfolioData);
@@ -1174,6 +1198,77 @@
             renderTokenTable();
             renderPortfolioSummary();
             showNotification(`Token ${symbol} added to strategy`, 'success');
+        }
+        
+        // Bulk token import
+        function addBulkTokens() {
+            const bulkInput = elements.bulkTokens.value.trim();
+            if (!bulkInput) {
+                showNotification('Please enter tokens data', 'error');
+                return;
+            }
+
+            const lines = bulkInput.split('\n');
+            let addedCount = 0;
+            let errors = [];
+
+            lines.forEach((line, index) => {
+                const [symbol, priceStr] = line.split(/\s+/);
+                const price = parseFloat(priceStr.replace(',', '.')); // Поддержка разных форматов чисел
+
+                if (!symbol || isNaN(price) || price <= 0) {
+                    errors.push(`Line ${index + 1}: invalid format`);
+                    return;
+                }
+
+                // Проверяем дубликаты
+                if (portfolio.tokens.some(t => t.symbol === symbol.toUpperCase())) {
+                    errors.push(`${symbol} already exists`);
+                    return;
+                }
+
+                // Добавляем токен
+                const token = {
+                    symbol: symbol.toUpperCase(),
+                    buy1: price,
+                    buy2: price * 0.75,
+                    buy3: price * 0.5625,
+                    buy4: price * 0.421875,
+                    allocation: portfolio.capital / (portfolio.tokens.length + 1),
+                    bought: [false, false, false, false],
+                    coins: 0,
+                    invested: 0,
+                    avgPrice: 0,
+                    tp1Sold: false,
+                    tp2Sold: false,
+                    currentPrice: 0,
+                    lastUpdated: null
+                };
+
+                portfolio.tokens.push(token);
+                addedCount++;
+            });
+
+            // Обновляем аллокации для всех токенов
+            const tokenCount = portfolio.tokens.length;
+            portfolio.tokens.forEach(token => {
+                token.allocation = portfolio.capital / tokenCount;
+            });
+
+            saveToLocalStorage();
+            renderTokenTable();
+            renderPortfolioSummary();
+
+            if (addedCount > 0) {
+                showNotification(`Added ${addedCount} tokens successfully!`, 'success');
+            }
+
+            if (errors.length > 0) {
+                showNotification(`Some tokens not added: ${errors.join(', ')}`, 'warning');
+            }
+
+            // Очищаем поле
+            elements.bulkTokens.value = '';
         }
         
         // Portfolio Operations
@@ -1729,8 +1824,8 @@
             
             const ctx = elements.portfolioChart.getContext('2d');
             
-            // Destroy existing chart if it exists
-            if (window.portfolioChart) {
+            // Исправление: безопасное удаление существующего графика
+            if (window.portfolioChart && typeof window.portfolioChart.destroy === 'function') {
                 window.portfolioChart.destroy();
             }
             
