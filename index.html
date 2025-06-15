@@ -565,9 +565,10 @@
         <div class="instructions">
             <h3>
                 <span class="icon">ℹ️</span>
-                Strategy Rules
+                Important Notes
             </h3>
             <ul>
+                <li>Using <strong>CoinGecko API</strong> for real-time prices (no API key needed)</li>
                 <li><strong>Buy 1</strong> can only be executed once per token</li>
                 <li>Subsequent buys are only possible when price reaches the level</li>
                 <li>TP1 = +100% from average buy price (sell 50% of holdings)</li>
@@ -581,13 +582,8 @@
             <div class="card">
                 <h2 class="card-title">
                     <span class="icon">🔑</span>
-                    API Configuration
+                    Configuration
                 </h2>
-                <div class="form-group">
-                    <label for="apiKey">CoinMarketCap API Key</label>
-                    <input type="text" id="apiKey" placeholder="Enter your API key">
-                    <small>Get your free API key from <a href="https://coinmarketcap.com/api/" target="_blank" style="color: var(--secondary);">CoinMarketCap</a></small>
-                </div>
                 <div class="form-group">
                     <label for="totalCapital">Total Capital ($)</label>
                     <input type="number" id="totalCapital" placeholder="10000" min="100" step="100" value="10000">
@@ -779,13 +775,11 @@
             tokens: [],
             history: [],
             dailySnapshots: [],
-            apiKey: '',
             lastUpdated: null
         };
         
         // DOM Elements
         const elements = {
-            apiKey: document.getElementById('apiKey'),
             totalCapital: document.getElementById('totalCapital'),
             tokenSymbol: document.getElementById('tokenSymbol'),
             buy1Price: document.getElementById('buy1Price'),
@@ -855,7 +849,6 @@
         
         // Configuration
         function saveConfig() {
-            portfolio.apiKey = elements.apiKey.value;
             portfolio.capital = parseFloat(elements.totalCapital.value);
             portfolio.cash = portfolio.capital;
             
@@ -921,11 +914,6 @@
         
         // Portfolio Operations
         async function updatePortfolio() {
-            if (!portfolio.apiKey) {
-                showNotification('Please enter your CoinMarketCap API key first', 'error');
-                return;
-            }
-            
             if (portfolio.tokens.length === 0) {
                 showNotification('Add tokens to your portfolio first', 'warning');
                 return;
@@ -963,20 +951,12 @@
         async function updateTokenPrices() {
             if (portfolio.tokens.length === 0) return;
             
-            const symbols = portfolio.tokens.map(token => token.symbol).join(',');
+            const symbols = portfolio.tokens.map(token => token.symbol.toLowerCase()).join(',');
             
             try {
-                // Use proxy to avoid CORS issues on GitHub Pages
-                const proxyUrl = 'https://api.allorigins.win/raw?url=';
-                const apiUrl = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${encodeURIComponent(symbols)}`;
-                const url = proxyUrl + encodeURIComponent(apiUrl);
+                const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&symbols=${encodeURIComponent(symbols)}`;
                 
-                const response = await fetch(url, {
-                    headers: {
-                        'X-CMC_PRO_API_KEY': portfolio.apiKey,
-                        'Accept': 'application/json'
-                    }
-                });
+                const response = await fetch(url);
                 
                 if (!response.ok) {
                     const errorText = await response.text();
@@ -987,11 +967,13 @@
                 
                 // Update token prices
                 portfolio.tokens.forEach(token => {
-                    if (data.data && data.data[token.symbol]) {
-                        token.currentPrice = data.data[token.symbol].quote.USD.price;
+                    const tokenData = data.find(item => item.symbol === token.symbol.toLowerCase());
+                    if (tokenData) {
+                        token.currentPrice = tokenData.current_price;
                         token.lastUpdated = new Date().toISOString();
                     } else {
                         console.warn(`No data for token: ${token.symbol}`);
+                        token.currentPrice = null;
                     }
                 });
                 
@@ -1457,7 +1439,6 @@
                 portfolio = JSON.parse(savedData);
                 
                 // Initialize elements
-                elements.apiKey.value = portfolio.apiKey || '';
                 elements.totalCapital.value = portfolio.capital || 10000;
             }
         }
